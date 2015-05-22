@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="https://rawgit.com/novus/nvd3/v1.1.15-beta/nv.d3.min.css"/>
+    <script data-require="angular.js@1.2.x" src="https://code.angularjs.org/1.2.16/angular.js" data-semver="1.2.16"></script>
+    <script src="https://rawgit.com/mbostock/d3/master/d3.min.js"></script>
+    <script src="https://rawgit.com/novus/nvd3/v1.1.15-beta/nv.d3.min.js"></script>
+    <script src="https://rawgit.com/krispo/angular-nvd3/v0.1.1/dist/angular-nvd3.js"></script>
+
+    <script type="text/javascript" charset="utf-8">
+        var app = angular.module('myApp', ['nvd3']);
+        app.factory('socket', function ($rootScope) {
+            var socket = io();
+            return {
+                on: function (eventName, callback) {
+                    socket.on(eventName, function () {
+                        var args = arguments;
+                        $rootScope.$apply(function () {
+                            callback.apply(socket, args);
+                        });
+                    });
+                },
+                emit: function (eventName, data, callback) {
+                    socket.emit(eventName, data, function () {
+                        var args = arguments;
+                        $rootScope.$apply(function () {
+                            if (callback) {
+                                callback.apply(socket, args);
+                            }
+                        });
+                    })
+                }
+            };
+        });
+
+        app.controller('AppCtrl', function($scope, socket) {
+
+            $scope.options = {
+                chart: {
+                    type: 'linePlusBarChart',
+                    height: 500,
+                    margin: {
+                        top: 30,
+                        right: 75,
+                        bottom: 50,
+                        left: 75
+                    },
+                    bars: {
+                        forceY: [0]
+                    },
+                    bars2: {
+                        forceY: [0]
+                    },
+                    color: ['#2ca02c', 'darkred'],
+                    x: function(d,i) { return i },
+                    xAxis: {
+                        axisLabel: 'Time (s)',
+                        tickFormat: function(d) {
+                            return d;
+                        }
+                    },
+                    x2Axis: {
+                        tickFormat: function(d) {
+                            return d;
+                        },
+                        showMaxMin: false
+                    },
+                    y1Axis: {
+                        axisLabel: 'Number of Requests',
+                        tickFormat: function(d){
+                            return d3.format(',f')(d);
+                        }
+                    },
+                    y2Axis: {
+                        axisLabel: 'Response Time',
+                        tickFormat: function(d) {
+                            return d3.format(',.2f')(d) + "ms"
+                        }
+                    }
+                }
+            };
+
+            $scope.data = [
+                {
+                    "key" : "Successful Requests" ,
+                    "bar": true,
+                    "values" : [ [ 0 , 0 ] ]
+                },
+                /*{
+                    "key" : "Failed Requests" ,
+                    "bar": true,
+                    "values" : [ [ 0 , 0 ] ]
+                },*/
+                {
+                    "key" : "Response Time" ,
+                    "values" : [ [ 0 , 0] ]
+                }
+            ].map(function(series) {
+                        series.values = series.values.map(function(d) { return {x: d[0], y: d[1], label: d[2] } });
+                        return series;
+                    });
+
+            socket.on('newData', function(data){
+                console.log(data.error);
+                $scope.data[0].values.push({x: $scope.data[0].values.length + 1, y: data.success, series: 0});
+                //$scope.data[1].values.push({x: $scope.data[1].values.length + 1, y: data.error, series: 0});
+                $scope.data[1].values.push({x: $scope.data[1].values.length + 1, y: data.averageResponseTime, series: 0});
+            });
+
+        });
+
+    </script>
+</head>
+
+<body ng-controller="AppCtrl">
+
+<nvd3 options="options" data="data" config="{refreshDataOnly: true}" class="with-3d-shadow with-transitions"></nvd3>
+
+</body>
+</html>
