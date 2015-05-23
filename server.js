@@ -5,40 +5,45 @@ var io = require('socket.io');
 
 var requester = require("./requester");
 
+var fork = require('child_process').fork;
+
+var workers = [];
+
+var nofThreads = 5;
+var nofParallel = 10;
+var nofTotalRequests = 0;
+var active = false;
+
+for (var x = 0; x < nofThreads; x++) {
+    workers[x] = fork(__dirname + '/worker.js');
+    workers[x].on('message', function(response) {
+        nofTotalRequests++;
+        if (response.success) {
+            times.success.push({time: response.time});
+        } else {
+            times.error.push({});
+        }
+    });
+}
+
+var setStatus = function(status) {
+    for (var x = 0; x < nofThreads; x++) {
+        workers[x].send({status: status, requestsPerSecond: nofParallel});
+    }
+};
+
+setTimeout(function() {setStatus(true)}, 1000);
+setTimeout(function() {setStatus(false)}, 9000);
+
 var times = {};
 times.success = [];
 times.error = [];
 
-var makeRequest = function() {
-    requester.get("http://localhost/pm/public", function(error, response, url, time) {
-        if (!error && response.statusCode == 200) {
-            times.success.push({
-                time: time
-            });
-        } else {
-            times.error.push({});
-        }
-
-    });
-};
-setInterval(makeRequest, 100);
-
-/*
-threadPool.load('worker.js', function() {console.log("cb")});
-threadPool.importScripts('worker.js');
-threadPool.all.eval('var requester = require("./requester");');
-threadPool.on('newResponse', function(data) {
-    console.log(data);
-    times.success.push({
-        time: data
-    });
-});
-*/
-
-
 setInterval(function() {
     var localTimes = times;
     times = {}; times.success = []; times.error = [];
+    console.log("-------");
+    console.log("Total Requests: " + nofTotalRequests);
     console.log("Success: " + localTimes.success.length);
     console.log("Error: " + localTimes.error.length);
     if (localTimes.success.length) {
