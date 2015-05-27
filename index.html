@@ -39,6 +39,19 @@
 
         app.controller('AppCtrl', function($scope, socket) {
 
+            $scope.status = false;
+            $scope.nofProcesses = 5;
+            $scope.nofRequestsPerProcessPerSecond = 10;
+
+            $scope.start = function() {
+                $scope.status = !$scope.status;
+                socket.emit('run', {
+                    status: $scope.status,
+                    nofProcesses: $scope.nofProcesses,
+                    nofRequestsPerProcessPerSecond: $scope.nofRequestsPerProcessPerSecond
+                });
+            };
+
             $scope.options = {
                 chart: {
                     type: 'linePlusBarChart',
@@ -117,7 +130,9 @@
 </head>
 
 <body ng-controller="AppCtrl">
-
+<button ng-click="start()">Start / Stop</button>
+<input type="text" ng-model="nofProcesses">
+<input type="text" ng-model="nofRequestsPerProcessPerSecond">
 <nvd3 options="options" data="data" config="{refreshDataOnly: true}" class="with-3d-shadow with-transitions"></nvd3>
 
 </body>

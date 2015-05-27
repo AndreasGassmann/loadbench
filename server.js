@@ -9,12 +9,9 @@ var fork = require('child_process').fork;
 
 var workers = [];
 
-var nofThreads = 5;
-var nofParallel = 10;
 var nofTotalRequests = 0;
-var active = false;
 
-for (var x = 0; x < nofThreads; x++) {
+for (var x = 0; x < 5; x++) {
     workers[x] = fork(__dirname + '/worker.js');
     workers[x].on('message', function(response) {
         nofTotalRequests++;
@@ -26,14 +23,11 @@ for (var x = 0; x < nofThreads; x++) {
     });
 }
 
-var setStatus = function(status) {
+var setStatus = function(status, nofThreads, nofParallel) {
     for (var x = 0; x < nofThreads; x++) {
-        workers[x].send({status: status, requestsPerSecond: nofParallel});
+        workers[x].send({status: status, threads: nofThreads, requestsPerSecond: nofParallel});
     }
 };
-
-setTimeout(function() {setStatus(true)}, 1000);
-setTimeout(function() {setStatus(false)}, 9000);
 
 var times = {};
 times.success = [];
@@ -65,5 +59,8 @@ var server = http.createServer(function (req, res) {
 var socket = io.listen(server);
 
 socket.on('connection', function(socket) {
-    console.log("new connection!");
+    socket.on('run', function(data){
+        console.log(data);
+        setStatus(data.status, data.nofProcesses, data.nofRequestsPerProcessPerSecond);
+    });
 });
