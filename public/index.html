@@ -2,12 +2,17 @@
 <html ng-app="myApp">
 <head lang="en">
     <meta charset="UTF-8">
-    <title></title>
+    <title>Loadbench</title>
 
     <script src="/socket.io/socket.io.js"></script>
+
+    <!--<link rel="stylesheet" href="lib/nvd3/build/nv.d3.min.css"/>
+    <script src="lib/nvd3/build/nv.d3.min.js"></script>
+    <script src="lib/angular-nvd3/dist/angular-nvd3.min.js"></script>-->
+
     <link rel="stylesheet" href="https://rawgit.com/novus/nvd3/v1.1.15-beta/nv.d3.min.css"/>
-    <script data-require="angular.js@1.2.x" src="https://code.angularjs.org/1.2.16/angular.js" data-semver="1.2.16"></script>
-    <script src="https://rawgit.com/mbostock/d3/master/d3.min.js"></script>
+    <script src="lib/angular/angular.min.js"></script>
+    <script src="lib/d3/d3.min.js"></script>
     <script src="https://rawgit.com/novus/nvd3/v1.1.15-beta/nv.d3.min.js"></script>
     <script src="https://rawgit.com/krispo/angular-nvd3/v0.1.1/dist/angular-nvd3.js"></script>
 
@@ -40,6 +45,7 @@
         app.controller('AppCtrl', function($scope, socket) {
 
             $scope.status = false;
+            $scope.requestUrl = "http://localhost:1337/chunk";
             $scope.nofProcesses = 5;
             $scope.nofRequestsPerProcessPerSecond = 10;
 
@@ -47,6 +53,7 @@
                 $scope.status = !$scope.status;
                 socket.emit('run', {
                     status: $scope.status,
+                    url: $scope.requestUrl,
                     nofProcesses: $scope.nofProcesses,
                     nofRequestsPerProcessPerSecond: $scope.nofRequestsPerProcessPerSecond
                 });
@@ -130,9 +137,10 @@
 </head>
 
 <body ng-controller="AppCtrl">
-<button ng-click="start()">Start / Stop</button>
-<input type="text" ng-model="nofProcesses">
-<input type="text" ng-model="nofRequestsPerProcessPerSecond">
+<button ng-click="start()">Start / Stop</button><br />
+Url: <input type="text" ng-model="requestUrl" /><br />
+Number of processes: <input type="text" ng-model="nofProcesses"><br />
+Number of requests per process per second: <input type="text" ng-model="nofRequestsPerProcessPerSecond"><br />
 <nvd3 options="options" data="data" config="{refreshDataOnly: true}" class="with-3d-shadow with-transitions"></nvd3>
 
 </body>

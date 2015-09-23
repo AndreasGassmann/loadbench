@@ -1,0 +1,24 @@
+{
+  "name": "loadbench",
+  "version": "0.0.0",
+  "homepage": "https://github.com/AndreasGassmann/loadbench",
+  "authors": [
+    "Andreas Gassmann <andreas@andreasgassmann.ch>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "*",
+    "angular-material": "*",
+    "angular-nvd3": "~1.0.2",
+    "d3": "~3.5.6",
+    "material-design-icons-iconfont": "*",
+    "nvd3": "~1.8.1"
+  }
+}

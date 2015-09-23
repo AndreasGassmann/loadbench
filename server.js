@@ -1,39 +1,57 @@
+var static = require('node-static');
 var http = require('http');
 var fs = require('fs');
 var _ = require('lodash');
 var io = require('socket.io');
-
-var requester = require("./requester");
-
 var fork = require('child_process').fork;
 
 var workers = [];
 
 var nofTotalRequests = 0;
 
-for (var x = 0; x < 5; x++) {
-    workers[x] = fork(__dirname + '/worker.js');
-    workers[x].on('message', function(response) {
-        nofTotalRequests++;
-        if (response.success) {
-            times.success.push({time: response.time});
-        } else {
-            times.error.push({});
-        }
-    });
-}
-
-var setStatus = function(status, nofThreads, nofParallel) {
-    for (var x = 0; x < nofThreads; x++) {
-        workers[x].send({status: status, threads: nofThreads, requestsPerSecond: nofParallel});
-    }
-};
-
 var times = {};
 times.success = [];
 times.error = [];
 
-setInterval(function() {
+var workerMessage = function(x) {
+  return function(response) {
+    if (response.log) {
+      console.log("Message from worker " + x + ": " + response.msg);
+    } else {
+      nofTotalRequests++;
+      if (response.success) {
+          times.success.push({time: response.time});
+      } else {
+          times.error.push({});
+      }
+    }
+  };
+};
+
+var initWorkers = function(nofWorkers, callback) {
+  workers = [];
+  for (var x = 0; x < nofWorkers; x++) {
+      workers[x] = fork(__dirname + '/app/worker.js');
+      workers[x].on('message', workerMessage(x));
+  }
+  callback();
+}
+
+var setStatus = function(status, url, nofWorkers, nofParallel) {
+  if (status) {
+    initWorkers(nofWorkers, function() {
+      for (var x = 0; x < nofWorkers; x++) {
+        workers[x].send({status: status, url: url, requestsPerSecond: nofParallel});
+      }
+    });
+  } else {
+    for (var x = 0; x < nofWorkers; x++) {
+      workers[x].send({status: status});
+    }
+  }
+};
+
+var interval = setInterval(function() {
     var localTimes = times;
     times = {}; times.success = []; times.error = [];
     console.log("-------");
@@ -50,10 +68,12 @@ setInterval(function() {
     }
 }, 1000);
 
-var index = fs.readFileSync('index.html');
-var server = http.createServer(function (req, res) {
-    res.writeHead(200, {'Content-Type': 'text/html'});
-    res.end(index);
+
+var file = new static.Server('./public');
+var server = http.createServer(function (request, response) {
+    request.addListener('end', function () {
+        file.serve(request, response);
+    }).resume();
 }).listen(1337);
 
 var socket = io.listen(server);
@@ -61,6 +81,6 @@ var socket = io.listen(server);
 socket.on('connection', function(socket) {
     socket.on('run', function(data){
         console.log(data);
-        setStatus(data.status, data.nofProcesses, data.nofRequestsPerProcessPerSecond);
+        setStatus(data.status, data.url, data.nofProcesses, data.nofRequestsPerProcessPerSecond);
     });
 });

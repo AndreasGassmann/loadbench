@@ -1,15 +1,19 @@
 var requester = require("./requester");
 
-var makeRequest = function() {
+var makeRequest = function(url) {
+  return function() {
     requestsStarted++;
-    requester.get("http://localhost/pm/public/", function(error, response, url, time) {
+    requester.get(url, function(error, response, time) {
         requestsResponded++;
         if (!error && response.statusCode == 200) {
             process.send({success: true, time: time});
         } else {
-            process.send({success: false, time: time});
+          console.log(error);
+          if (response) console.log(response.statusCode);
+          process.send({success: false, time: time});
         }
     });
+  };
 };
 
 var requestsStarted = 0;
@@ -17,20 +21,20 @@ var requestsResponded = 0;
 var myInterval;
 var isRequesting = false;
 
-var startRequests = function() {
+var startRequests = function(url, requestsPerSecond) {
     if (!isRequesting) {
         isRequesting = true;
-        myInterval = setInterval(makeRequest, 100);
+        myInterval = setInterval(makeRequest(url), 1000/requestsPerSecond);
     }
 };
 
 
 process.on('message', function(m) {
     if (m.status) {
-        startRequests();
+        startRequests(m.url, m.requestsPerSecond);
     } else {
         clearInterval(myInterval);
         isRequesting = false;
-        console.log(requestsResponded + "/" + requestsStarted);
+        process.send({log: true, msg: requestsResponded + "/" + requestsStarted});
     }
 });
